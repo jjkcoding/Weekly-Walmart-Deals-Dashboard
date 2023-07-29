@@ -4,7 +4,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.keys import Keys
-
 from selenium_stealth import stealth
 
 import random
@@ -15,38 +14,22 @@ import tqdm
 import gspread
 
 
-cred_path = "D:/Projects/web scraping/google sheets scrape/credentials.json"
-token_path = "D:/Projects/web scraping/google sheets scrape/tokens.json"
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-SPREADSHEET_ID = "1BbQbzkmTUUvvSN_lDANqyjx_28B5qNMLKTlxxzsSWF0"
-auth_path = "D:/Projects/web scraping/google sheets scrape/auth.json"
-
-
+# Pathing all the necessary files
 fold_path = "D:/Projects/walmart dashboard/"
 ex_path = fold_path + "wm_sale.csv"
 s_categories = ["Electronics", "Health and Medicine", "Beauty", "Home Improvement", "Personal Care"]
+cred_path = "D:/Projects/web scraping/google sheets scrape/credentials.json"
+auth_path = "D:/Projects/web scraping/google sheets scrape/auth.json"
 
 
-user_agent_path = "D:/Projects/web scraping/user-agents.txt"
-with open(user_agent_path, 'r') as file:
-    user_agents = file.readlines()
-
-
-def rand_user(options):
-    options.add_argument("--user-agent={}".format(random.choice(user_agents).strip()))
-    return options
-
-
-# Initialize Driver
+# Initialize Driver Options
 options = Options()
 options.add_argument("--no-sandbox")
 options.add_argument("start-maximized")
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('--incognito')
 options.add_argument('--disable-blink-features=AutomationControlled')
-# options = rand_user(options)
-# options.add_argument("--headless=new")
-
+options.add_argument("--headless=new")
 
 options.add_experimental_option("useAutomationExtension", False)
 options.add_experimental_option("detach", True)
@@ -56,7 +39,7 @@ options.add_experimental_option(
 )
 
 
-
+# Initializing first driver that gets all the product pages
 driver1 = webdriver.Chrome(service = Service(ChromeDriverManager().install()),
                           options = options)
 
@@ -68,6 +51,7 @@ stealth(driver1,
         renderer = "Intel Iris OpenGL Engine")
 
 
+# Initializing second driver that views all the product pages and web scrapes data
 driver2 = webdriver.Chrome(service = Service(ChromeDriverManager().install()),
                           options = options)
 
@@ -79,7 +63,7 @@ stealth(driver2,
         renderer = "Intel Iris OpenGL Engine")
 
 
-
+# Gathers data from product page
 def get_prod_info(cur_driver, site):
     cur_driver.get(site)
 
@@ -102,7 +86,7 @@ def get_prod_info(cur_driver, site):
     return cur_name, cur_price, cur_old_price
 
 
-
+# Goes through weekly deals and finds each section on the "Departments" tab
 driver1.get("https://www.walmart.com/shop/deals/flash-picks?sort=best_seller")
 driver1.find_element("xpath", "//button[contains(@aria-label, 'All filters')]").click()
 time.sleep(1)
@@ -110,17 +94,19 @@ driver1.find_element("xpath", "//div[text()[contains(., 'Departments')]]").click
 time.sleep(1)
 driver1.find_element("xpath", "//button[text()[contains(., 'Show More')]]").click()
 time.sleep(1)
-
 all_sections = driver1.find_elements("xpath", "//div[contains(@aria-label, 'All departments')]//div")
+
+# Begins looping through sections to only click the categories we are looking for
 str_sections = []
 all_index = []
 for sec_i in range(len(all_sections)):
     str_sections.append(all_sections[sec_i].find_element("xpath", ".//span[contains(@aria-hidden, 'true') and text()[string-length(.) > 0]]").get_attribute("innerText").strip())
     if str_sections[-1] in s_categories:
         all_index.append(sec_i)
-
 time.sleep(1)
 
+
+# Loop to select each category and get all product pages
 for i in all_index:
     cur_section = all_sections[i].find_element("xpath", ".//span[contains(@aria-hidden, 'true') and text()[string-length(.) > 0]]").get_attribute("innerText").strip()
     print(cur_section)
@@ -130,9 +116,8 @@ for i in all_index:
     driver1.find_element("xpath", "//button[text()[contains(., 'View results')]]").click()
     time.sleep(1)
 
-
+    # Loops to gather all product links until there is no "Next Page"
     all_links = []
-
     cur_next = [1, 2, 3]
     while len(cur_next) > 0:
         time.sleep(random.randint(1, 3))
@@ -144,6 +129,7 @@ for i in all_index:
             next_href = cur_next[0].get_attribute("href")
             driver1.get(next_href)
 
+    # Loops through all product page links to gather data
     for cur_link in tqdm.tqdm(all_links):
         time.sleep(random.randint(2, 4))
         cur_name, cur_price, cur_old_price = get_prod_info(driver2, cur_link)
@@ -160,11 +146,13 @@ for i in all_index:
                 "Price Difference": ["${:.2f}".format(cur_price_diff)],
                 "Percent Difference": ["{:.2f}%".format(cur_perc_diff)]
             })
+            # Exporting dataframe to csv and appending data if csv exists
             if os.path.exists(ex_path):
                 temp_df.to_csv(ex_path, index = False, header = False, mode = 'a')
             else:
                 temp_df.to_csv(ex_path, index = False)
     
+    # Checking to see if there are any more categories to click through
     if i + 1 < len(all_sections):
         driver1.get("https://www.walmart.com/shop/deals/flash-picks?sort=best_seller")
         driver1.find_element("xpath", "//button[contains(@aria-label, 'All filters')]").click()
@@ -176,27 +164,26 @@ for i in all_index:
 
     all_sections = driver1.find_elements("xpath", "//div[contains(@aria-label, 'All departments')]//div")
 
+# CLosing drivers
 driver1.close()
 driver2.close()
 
 
 
-# transfering csv to google sheets
+# Reading finished dataframe from csv
 wm_df = pd.read_csv(ex_path)
 
-# Authenticate with Google Sheets API
+# Authenticate with Google Sheets API and Opening Google Sheets
 gc = gspread.oauth(
     credentials_filename=cred_path,
     authorized_user_filename=auth_path
 )
-
-# Open the Google Sheet by name
 sh = gc.open('Weekly Walmart Deals')
-
-# Select the worksheet by name
 worksheet = sh.worksheet('Sheet1')
-worksheet.clear()
 
-# Print Dataframe On Google Sheet
+# Clearing Sheet and Inputting Dataframe
+worksheet.clear()
 worksheet.update([wm_df.columns.values.tolist()] + wm_df.values.tolist())
 
+# Done!
+print("Finished!")
