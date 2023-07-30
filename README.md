@@ -1,6 +1,7 @@
 # Weekly Walmart Deals Dashboard Project [(Tableau Link)](https://public.tableau.com/app/profile/joshua.kim6929/viz/WeeklyWalmartDealsDashboard/WeeklyWalmartDealsDashboard)
 
-![Weekly Walmart Deals Dashboard](https://github.com/jjkcoding/Weekly-Walmart-Deals-Dashboard/assets/43764400/4bdb4617-784f-47fe-887f-d10b7e9c6ae5)
+![Weekly Walmart Deals Dashboard](https://github.com/jjkcoding/Weekly-Walmart-Deals-Dashboard/assets/43764400/f67944f2-9a47-425d-951d-e8b0d9e4afb4)
+
 
 ## Project Summary:
 
@@ -25,7 +26,7 @@
 
 ### Tableau Dashboard Creation:
 * Connected the Google Sheets document to Tableau to use the scraped data as a data source.
-* Designed an interactive dashboard with various KPIs (like total deals, average percent discount, total money saved, top deals by dollar and percentage, sale price distribution, and a sale price vs. old price scatter plot, all filterable by category) and visualizations based on the collected data.
+* Designed an interactive dashboard with various KPIs (like total deals, average percent discount, total money saved, top deals by dollar and percentage, total amount saved by section, and percent saved distribution by category, all filterable by category) and visualizations based on the collected data.
 * Allowed users to filter and explore the data dynamically by category.
 * [Tableau Link](https://public.tableau.com/app/profile/joshua.kim6929/viz/WeeklyWalmartDealsDashboard/WeeklyWalmartDealsDashboard)
 
